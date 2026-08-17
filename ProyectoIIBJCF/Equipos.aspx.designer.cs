@@ -12,5 +12,6 @@ namespace ProyectoIIBJCF
         protected global::System.Web.UI.WebControls.Button btnSearch;
         protected global::System.Web.UI.WebControls.Button btnUpdate;
         protected global::System.Web.UI.WebControls.Button btnDelete;
+        protected global::System.Web.UI.WebControls.GridView gvEquipment;
     }
 }
