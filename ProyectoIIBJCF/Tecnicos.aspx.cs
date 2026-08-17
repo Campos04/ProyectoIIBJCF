@@ -1,216 +1,45 @@
 using System;
-using System.Configuration;
 using System.Data;
 using System.Data.SqlClient;
 
 namespace ProyectoIIBJCF
 {
-    public partial class Tecnicos : System.Web.UI.Page
+    public partial class Tecnicos : SecurePage
     {
+        protected void Page_Load(object sender, EventArgs e) { if (!IsPostBack) LoadGrid(); }
         protected void btnAdd_Click(object sender, EventArgs e)
         {
-            if (!ValidateTechnicianData())
-            {
-                return;
-            }
-
-            const string query = @"INSERT INTO Tecnicos (Nombre, Especialidad)
-                                   VALUES (@Nombre, @Especialidad);";
-
-            try
-            {
-                using (SqlConnection connection = new SqlConnection(GetConnectionString()))
-                using (SqlCommand command = new SqlCommand(query, connection))
-                {
-                    AddTechnicianParameters(command);
-                    connection.Open();
-                    command.ExecuteNonQuery();
-                }
-
-                ClearForm();
-                ShowMessage("El técnico se agregó correctamente.", false);
-            }
-            catch (SqlException)
-            {
-                ShowMessage("No se pudo agregar el técnico.", true);
-            }
+            if (!ValidateData()) return;
+            try { using (SqlConnection c = DbHelper.CreateConnection()) using (SqlCommand cmd = DbHelper.CreateStoredProcedureCommand("sp_Tecnicos_Agregar", c)) { AddParameters(cmd); c.Open(); cmd.ExecuteNonQuery(); } ClearForm(); LoadGrid(); ShowMessage("El técnico se agregó correctamente.", false); }
+            catch (SqlException) { ShowMessage("No se pudo agregar el técnico.", true); }
         }
-
-        protected void btnSearch_Click(object sender, EventArgs e)
-        {
-            int technicianId;
-            if (!TryGetTechnicianId(out technicianId))
-            {
-                return;
-            }
-
-            LoadTechnicianById(technicianId);
-        }
-
+        protected void btnSearch_Click(object sender, EventArgs e) { int id; if (TryGetId(out id)) LoadById(id); }
         protected void btnUpdate_Click(object sender, EventArgs e)
         {
-            int technicianId;
-            if (!TryGetTechnicianId(out technicianId) || !ValidateTechnicianData())
-            {
-                return;
-            }
-
-            const string query = @"UPDATE Tecnicos
-                                   SET Nombre = @Nombre,
-                                       Especialidad = @Especialidad
-                                   WHERE TecnicoID = @TecnicoID;";
-
-            try
-            {
-                int affectedRows;
-
-                using (SqlConnection connection = new SqlConnection(GetConnectionString()))
-                using (SqlCommand command = new SqlCommand(query, connection))
-                {
-                    AddTechnicianParameters(command);
-                    command.Parameters.Add("@TecnicoID", SqlDbType.Int).Value = technicianId;
-                    connection.Open();
-                    affectedRows = command.ExecuteNonQuery();
-                }
-
-                if (affectedRows == 0)
-                {
-                    ShowMessage("No se encontró un técnico con ese ID.", true);
-                    return;
-                }
-
-                ShowMessage("El técnico se modificó correctamente.", false);
-            }
-            catch (SqlException)
-            {
-                ShowMessage("No se pudo modificar el técnico.", true);
-            }
+            int id; if (!TryGetId(out id) || !ValidateData()) return;
+            try { using (SqlConnection c = DbHelper.CreateConnection()) using (SqlCommand cmd = DbHelper.CreateStoredProcedureCommand("sp_Tecnicos_Modificar", c)) { cmd.Parameters.Add("@TecnicoID", SqlDbType.Int).Value = id; AddParameters(cmd); c.Open(); cmd.ExecuteNonQuery(); } LoadGrid(); ShowMessage("El técnico se modificó correctamente.", false); }
+            catch (SqlException) { ShowMessage("No se pudo modificar el técnico.", true); }
         }
-
         protected void btnDelete_Click(object sender, EventArgs e)
         {
-            int technicianId;
-            if (!TryGetTechnicianId(out technicianId))
-            {
-                return;
-            }
-
-            const string query = "DELETE FROM Tecnicos WHERE TecnicoID = @TecnicoID;";
-
-            try
-            {
-                int affectedRows;
-
-                using (SqlConnection connection = new SqlConnection(GetConnectionString()))
-                using (SqlCommand command = new SqlCommand(query, connection))
-                {
-                    command.Parameters.Add("@TecnicoID", SqlDbType.Int).Value = technicianId;
-                    connection.Open();
-                    affectedRows = command.ExecuteNonQuery();
-                }
-
-                if (affectedRows == 0)
-                {
-                    ShowMessage("No se encontró un técnico con ese ID.", true);
-                    return;
-                }
-
-                ClearForm();
-                ShowMessage("El técnico se borró correctamente.", false);
-            }
-            catch (SqlException)
-            {
-                ShowMessage("No se pudo borrar el técnico.", true);
-            }
+            int id; if (!TryGetId(out id)) return;
+            try { using (SqlConnection c = DbHelper.CreateConnection()) using (SqlCommand cmd = DbHelper.CreateStoredProcedureCommand("sp_Tecnicos_Eliminar", c)) { cmd.Parameters.Add("@TecnicoID", SqlDbType.Int).Value = id; c.Open(); cmd.ExecuteNonQuery(); } ClearForm(); LoadGrid(); ShowMessage("El técnico se borró correctamente.", false); }
+            catch (SqlException) { ShowMessage("No se pudo borrar el técnico. Revisa si tiene asignaciones asociadas.", true); }
         }
-
-        private void LoadTechnicianById(int technicianId)
+        private void LoadById(int id)
         {
-            const string query = @"SELECT TecnicoID, Nombre, Especialidad
-                                   FROM Tecnicos
-                                   WHERE TecnicoID = @TecnicoID;";
-
-            try
-            {
-                using (SqlConnection connection = new SqlConnection(GetConnectionString()))
-                using (SqlCommand command = new SqlCommand(query, connection))
-                {
-                    command.Parameters.Add("@TecnicoID", SqlDbType.Int).Value = technicianId;
-                    connection.Open();
-
-                    using (SqlDataReader reader = command.ExecuteReader())
-                    {
-                        if (!reader.Read())
-                        {
-                            ShowMessage("No se encontró un técnico con ese ID.", true);
-                            return;
-                        }
-
-                        txtTechnicianId.Text = reader["TecnicoID"].ToString();
-                        txtName.Text = reader["Nombre"].ToString();
-                        txtSpecialty.Text = reader["Especialidad"].ToString();
-                    }
-                }
-
-                ShowMessage("Técnico consultado correctamente.", false);
-            }
-            catch (SqlException)
-            {
-                ShowMessage("No se pudo consultar el técnico.", true);
-            }
+            try { using (SqlConnection c = DbHelper.CreateConnection()) using (SqlCommand cmd = DbHelper.CreateStoredProcedureCommand("sp_Tecnicos_Consultar", c)) { cmd.Parameters.Add("@TecnicoID", SqlDbType.Int).Value = id; c.Open(); using (SqlDataReader r = cmd.ExecuteReader()) { if (!r.Read()) { ShowMessage("No se encontró un técnico con ese ID.", true); return; } txtTechnicianId.Text = r["TecnicoID"].ToString(); txtName.Text = r["Nombre"].ToString(); txtSpecialty.Text = r["Especialidad"].ToString(); } } ShowMessage("Técnico consultado correctamente.", false); }
+            catch (SqlException) { ShowMessage("No se pudo consultar el técnico.", true); }
         }
-
-        private void AddTechnicianParameters(SqlCommand command)
+        private void LoadGrid()
         {
-            command.Parameters.Add("@Nombre", SqlDbType.NVarChar, 100).Value = txtName.Text.Trim();
-            command.Parameters.Add("@Especialidad", SqlDbType.NVarChar, 100).Value = txtSpecialty.Text.Trim();
+            try { using (SqlConnection c = DbHelper.CreateConnection()) using (SqlCommand cmd = DbHelper.CreateStoredProcedureCommand("sp_Tecnicos_Listar", c)) using (SqlDataAdapter a = new SqlDataAdapter(cmd)) { DataTable t = new DataTable(); a.Fill(t); gridData.DataSource = t; gridData.DataBind(); } }
+            catch (SqlException) { ShowMessage("No se pudo cargar la lista de técnicos.", true); }
         }
-
-        private bool ValidateTechnicianData()
-        {
-            if (string.IsNullOrWhiteSpace(txtName.Text))
-            {
-                ShowMessage("Escribe el nombre del técnico.", true);
-                return false;
-            }
-
-            if (string.IsNullOrWhiteSpace(txtSpecialty.Text))
-            {
-                ShowMessage("Escribe la especialidad del técnico.", true);
-                return false;
-            }
-
-            return true;
-        }
-
-        private bool TryGetTechnicianId(out int technicianId)
-        {
-            if (!int.TryParse(txtTechnicianId.Text.Trim(), out technicianId) || technicianId <= 0)
-            {
-                ShowMessage("Escribe un ID de técnico válido.", true);
-                return false;
-            }
-
-            return true;
-        }
-
-        private void ClearForm()
-        {
-            txtTechnicianId.Text = string.Empty;
-            txtName.Text = string.Empty;
-            txtSpecialty.Text = string.Empty;
-        }
-
-        private void ShowMessage(string message, bool isError)
-        {
-            lblMessage.Text = message;
-            lblMessage.CssClass = isError ? "message error" : "message success";
-            lblMessage.Visible = true;
-        }
-
-        private string GetConnectionString()
-        {
-            return ConfigurationManager.ConnectionStrings["RepairDb"].ConnectionString;
-        }
+        private void AddParameters(SqlCommand cmd) { cmd.Parameters.Add("@Nombre", SqlDbType.NVarChar, 100).Value = txtName.Text.Trim(); cmd.Parameters.Add("@Especialidad", SqlDbType.NVarChar, 100).Value = txtSpecialty.Text.Trim(); }
+        private bool ValidateData() { if (string.IsNullOrWhiteSpace(txtName.Text)) { ShowMessage("Escribe el nombre del técnico.", true); return false; } if (string.IsNullOrWhiteSpace(txtSpecialty.Text)) { ShowMessage("Escribe la especialidad.", true); return false; } return true; }
+        private bool TryGetId(out int id) { if (!int.TryParse(txtTechnicianId.Text.Trim(), out id) || id <= 0) { ShowMessage("Escribe un ID de técnico válido.", true); return false; } return true; }
+        private void ClearForm() { txtTechnicianId.Text = ""; txtName.Text = ""; txtSpecialty.Text = ""; }
+        private void ShowMessage(string m, bool e) { lblMessage.Text = m; lblMessage.CssClass = e ? "message error" : "message success"; lblMessage.Visible = true; }
     }
 }

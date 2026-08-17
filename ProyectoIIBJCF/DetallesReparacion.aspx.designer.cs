@@ -1,12 +1,14 @@
 namespace ProyectoIIBJCF
 {
-    public partial class Tecnicos
+    public partial class DetallesReparacion
     {
         protected global::System.Web.UI.HtmlControls.HtmlForm form1;
         protected global::System.Web.UI.WebControls.Label lblMessage;
-        protected global::System.Web.UI.WebControls.TextBox txtTechnicianId;
-        protected global::System.Web.UI.WebControls.TextBox txtName;
-        protected global::System.Web.UI.WebControls.TextBox txtSpecialty;
+        protected global::System.Web.UI.WebControls.TextBox txtDetailId;
+        protected global::System.Web.UI.WebControls.DropDownList ddlRepair;
+        protected global::System.Web.UI.WebControls.TextBox txtDescription;
+        protected global::System.Web.UI.WebControls.TextBox txtStartDate;
+        protected global::System.Web.UI.WebControls.TextBox txtEndDate;
         protected global::System.Web.UI.WebControls.Button btnAdd;
         protected global::System.Web.UI.WebControls.Button btnSearch;
         protected global::System.Web.UI.WebControls.Button btnUpdate;
